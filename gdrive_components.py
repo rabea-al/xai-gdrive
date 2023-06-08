@@ -1,53 +1,64 @@
 from xai_components.base import InArg, OutArg, InCompArg, Component, xai_component
 from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
-from pprint import pprint
+
+
 
 @xai_component
-class GDriveAuth(Component):
+class GDriveServiceAuth(Component):
     """A component that authenticates with Google Drive using a service account.
-    """
-    gauth: OutArg[any]
 
+    ##### inPorts:
+    - json_path: the path to the service account's secrets JSON file.
+    """
+    json_path: InCompArg[str]
+    gauth: OutArg[any]
+    gdrive: OutArg[any]
 
     def execute(self, ctx) -> None:
 
-        gauth = GoogleAuth()
-        gauth.LocalWebserverAuth()
+        settings = {
+            "client_config_backend": "service",
+            "service_config": {
+                "client_json_file_path": self.json_path.value,
+            }
+        }
+        # Create instance of GoogleAuth
+        gauth = GoogleAuth(settings=settings)
+        gauth.ServiceAuth()
 
         # Save gauth in the context for other components to use
         ctx.update({'gauth': gauth})
         self.gauth.value = gauth
 
-
-# @xai_component
-# class GDriveAuthService(Component):
-#     """A component that authenticates with Google Drive using a service account.
-
-#     ##### inPorts:
-#     - json_path: the path to the service account's secrets JSON file.
-#     """
-#     json_path: InCompArg[str]
-#     gauth: OutArg[any]
+        self.gdrive.value = GoogleDrive(gauth)
+        ctx.update({'gdrive': self.gdrive.value})
 
 
-#     def execute(self, ctx) -> None:
-#         json_path = self.json_path.value
+@xai_component
+class GDriveUserOAuth(Component):
+    """A component that authenticates with Google Drive using a service account.
+    """
 
-#         settings = {
-#             "client_config_backend": "service",
-#             "service_config": {
-#                 "client_json_file_path": json_path,
-#             }
-#         }
-#         # Create instance of GoogleAuth
-#         gauth = GoogleAuth(settings=settings)
-#         # Authenticate
-#         gauth.ServiceAuth()
+    json_path: InArg[str]
+    gauth: OutArg[any]
+    gdrive: OutArg[any]
 
-#         # Save gauth in the context for other components to use
-#         ctx.update({'gauth': gauth})
-#         self.gauth.value = gauth
+    def execute(self, ctx) -> None:
+
+        gauth = GoogleAuth()
+        
+        if self.json_path.value:
+            gauth.LoadClientConfigFile(self.json_path.value)
+        else:
+            gauth.LoadClientConfigFile('token.json')
+        gauth.LocalWebserverAuth()
+
+        ctx.update({'gauth': gauth})
+        self.gauth.value = gauth
+
+        self.gdrive.value = GoogleDrive(gauth)
+        ctx.update({'gdrive': self.gdrive.value})
 
 
 @xai_component
@@ -58,29 +69,21 @@ class GetFilesByQuery(Component):
     - filename: the name of the file to search for.
     - mimetype: the MIME type of the file to search for.
     """
-    gauth: InArg[any]
+    gdrive: InArg[any]
     filename: InCompArg[str]
     mimetype: InCompArg[str]
     files: OutArg[any]
 
     def execute(self, ctx) -> None:
-        gauth = self.gauth.value if self.gauth.value else ctx["gauth"]
+        gdrive = self.gdrive.value if self.gdrive.value else ctx["gdrive"]
         filename = self.filename.value
         mimetype = self.mimetype.value
-
-        # Create a new GoogleDrive instance
-        drive = GoogleDrive(gauth)
 
         # Query
         query = {'q': f"title = '{filename}' and mimeType='{mimetype}'"}
         
         # Get list of files that match against the query
-        files = drive.ListFile(query).GetList()
-        pprint(files)
-
-        # Save the file list in the context for other components to use
-        ctx.update({'files': files})
-        self.files.value = files
+        self.files.value = gdrive.ListFile(query).GetList()
 
 
 @xai_component(color="green")
@@ -92,19 +95,21 @@ class UploadFileToGDrive(Component):
     - folder_id: the ID of the folder to upload the file to.
     - filename: the name to give the uploaded file.
     """
-    gauth: InArg[any]
+
+    gdrive: InArg[any]
     file_path: InCompArg[str]
     folder_id: InCompArg[str]
-    filename: InCompArg[str]
+    filename: InArg[str]
     mimetype: InArg[str]
 
     def execute(self, ctx) -> None:
 
+        import os
         import mimetypes
 
         file_path = self.file_path.value
         folder_id = self.folder_id.value
-        filename = self.filename.value
+        filename = self.filename.value if self.filename.value else os.path.basename(file_path)
 
         # Determine the MIME type of the file
         if self.mimetype.value is None:
@@ -113,8 +118,7 @@ class UploadFileToGDrive(Component):
             mimetype = self.mimetype.value
 
         # Create a new GoogleDrive instance
-        gauth = self.gauth.value if self.gauth.value else ctx["gauth"]
-        drive = GoogleDrive(gauth)
+        gdrive = self.gdrive.value if self.gdrive.value else ctx["gdrive"]
 
         # Define file metadata, including the target folder ID
         metadata = {
@@ -124,7 +128,7 @@ class UploadFileToGDrive(Component):
         }
 
         # Create a new GoogleDriveFile instance and set its content to the image file
-        file = drive.CreateFile(metadata=metadata)
+        file = gdrive.CreateFile(metadata=metadata)
         file.SetContentFile(file_path)
 
         # Upload the file to Google Drive
@@ -139,7 +143,7 @@ class DownloadFileFromGDrive(Component):
     - file_id: the ID of the file to download.
     - output_path: the path to save the downloaded file.
     """
-    gauth: InArg[any]
+    gdrive: InArg[any]
     file_id: InCompArg[str]
     output_path: InCompArg[str]
 
@@ -148,11 +152,10 @@ class DownloadFileFromGDrive(Component):
         output_path = self.output_path.value
 
         # Create a new GoogleDrive instance
-        gauth = self.gauth.value if self.gauth.value else ctx["gauth"]
-        drive = GoogleDrive(gauth)
+        gdrive = self.gdrive.value if self.gdrive.value else ctx["gdrive"]
 
         # Initialize a GoogleDriveFile instance with the given file ID
-        file = drive.CreateFile({'id': file_id})
+        file = gdrive.CreateFile({'id': file_id})
 
         # Download the file and save it to the specified output path
         file.GetContentFile(output_path)
