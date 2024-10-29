@@ -10,5 +10,5 @@ keywords = ["xircuits", "gdrive", "cloud Storage"]
 
 # Xircuits-specific configurations
 [tool.xircuits]
-default_example_path = "GDriveSimpleDownload.xircuits"
+default_example_path = "examples/GDriveSimpleDownload.xircuits"
 requirements_path = "requirements.txt"
