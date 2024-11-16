@@ -8,6 +8,11 @@ readme = "README.md"
 repository = "https://github.com/XpressAI/xai-gdrive"
 keywords = ["xircuits", "gdrive", "cloud Storage"]
 
+dependencies = [
+    "pydrive2==1.20.0",
+    "pydrive2[fsspec]==1.20.0"
+]
+
 # Xircuits-specific configurations
 [tool.xircuits]
 default_example_path = "examples/GDriveSimpleDownload.xircuits"
