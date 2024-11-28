@@ -66,6 +66,8 @@ jobs:
 
     - name: Install Component Library
       run: |
+        echo "Installing pyOpenSSL specific version..."
+        pip install pyOpenSSL==24.2.1
         if [ -f "${{ env.COMPONENT_LIBRARY_PATH }}/requirements.txt" ]; then
           echo "requirements.txt found, installing dependencies..."
           pip install -r ${{ env.COMPONENT_LIBRARY_PATH }}/requirements.txt
