@@ -1,2 +1,2 @@
-pydrive2
-pydrive2[fsspec]
+pydrive2==1.20.0
+pydrive2[fsspec]==1.20.0

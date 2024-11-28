@@ -208,3 +208,70 @@ class GDriveFileSystem(Component):
             client_json_file_path=self.json_path.value,
         )
 
+@xai_component
+class UpdateFileInGDrive(Component):
+    """A component that updates the content of an existing file in Google Drive
+    or uploads a new file if no match is found in the specified folder.
+
+    ##### inPorts:
+    - gdrive: the GoogleDrive instance.
+    - file_path: the path to the local file whose content will be used.
+    - folder_id: the ID of the folder to search within (default is 'root').
+    - filename: the name of the file in Google Drive.
+    """
+
+    gdrive: InArg[any]
+    file_path: InCompArg[str]
+    folder_id: InCompArg[str]
+    filename: InCompArg[str]
+
+    def execute(self, ctx) -> None:
+        import hashlib
+        from os.path import basename, exists
+
+        gdrive = self.gdrive.value if self.gdrive.value else ctx["gdrive"]
+        folder_id = self.folder_id.value if self.folder_id.value else "root"
+        file_path = self.file_path.value
+        filename = self.filename.value if self.filename.value else basename(file_path)
+
+        # Check if the local file exists
+        if not exists(file_path):
+            print(f"The file '{file_path}' does not exist locally. Please check the path and try again.")
+            return
+
+        # Function to calculate file hash (MD5)
+        def calculate_file_hash(file_path):
+            hasher = hashlib.md5()
+            with open(file_path, 'rb') as f:
+                for chunk in iter(lambda: f.read(4096), b""):
+                    hasher.update(chunk)
+            return hasher.hexdigest()
+
+        local_file_hash = calculate_file_hash(file_path)
+
+        # Search for the file in the specified folder
+        query = f"'{folder_id}' in parents and title='{filename}' and trashed=false"
+        file_list = gdrive.ListFile({"q": query}).GetList()
+
+        if len(file_list) == 1:
+            gdrive_file = file_list[0]
+
+            # Compare MD5 hash to avoid unnecessary uploads
+            if 'md5Checksum' in gdrive_file and gdrive_file['md5Checksum'] == local_file_hash:
+                print(f"The file '{filename}' is already up-to-date in Google Drive (File ID: {gdrive_file['id']}).")
+                return
+
+            # Update existing file content
+            gdrive_file.SetContentFile(file_path)
+            gdrive_file.Upload()
+            print(f"Updated the file '{filename}' in Google Drive (File ID: {gdrive_file['id']}).")
+        else:
+            # Create and upload a new file if not found
+            metadata = {
+                "parents": [{"id": folder_id}],
+                "title": filename,
+            }
+            gdrive_file = gdrive.CreateFile(metadata)
+            gdrive_file.SetContentFile(file_path)
+            gdrive_file.Upload()
+            print(f"Uploaded a new file '{filename}' to Google Drive (File ID: {gdrive_file['id']}).")

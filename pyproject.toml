@@ -1,0 +1,19 @@
+[project]
+name = "xai-gdrive"
+version = "0.1.0"
+description = "A Xircuits component library for Google drive"
+authors = [{ name = "XpressAI", email = "eduardo@xpress.ai" }]
+license = "Apache-2.0"
+readme = "README.md"
+repository = "https://github.com/XpressAI/xai-gdrive"
+keywords = ["xircuits", "gdrive", "cloud Storage"]
+
+dependencies = [
+    "pydrive2==1.20.0",
+    "pydrive2[fsspec]==1.20.0"
+]
+
+# Xircuits-specific configurations
+[tool.xircuits]
+default_example_path = "examples/GDriveSimpleDownload.xircuits"
+requirements_path = "requirements.txt"
