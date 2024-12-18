@@ -1,15 +1,113 @@
-# Xircuits Google Drive Component Library
+<p align="center">
+  <a href="https://github.com/XpressAI/xircuits/tree/master/xai_components#xircuits-component-library-list">Component Libraries</a> •
+  <a href="https://github.com/XpressAI/xircuits/tree/master/project-templates#xircuits-project-templates-list">Project Templates</a>
+  <br>
+  <a href="https://xircuits.io/">Docs</a> •
+  <a href="https://xircuits.io/docs/Installation">Install</a> •
+  <a href="https://xircuits.io/docs/category/tutorials">Tutorials</a> •
+  <a href="https://xircuits.io/docs/category/developer-guide">Developer Guides</a> •
+  <a href="https://github.com/XpressAI/xircuits/blob/master/CONTRIBUTING.md">Contribute</a> •
+  <a href="https://www.xpress.ai/blog/">Blog</a> •
+  <a href="https://discord.com/invite/vgEg2ZtxCw">Discord</a>
+</p>
 
-Component library based on the [PyDrive2](https://github.com/iterative/PyDrive2) library.
 
+
+
+
+<p align="center"><i>Xircuits Component Library for Google Drive! Seamlessly integrate and manage your Google Drive files and folders.</i></p>
+
+---
+## Xircuits Component Library for Google Drive
+
+This library integrates Google Drive functionalities into Xircuits, enabling seamless file management. It supports authentication, file uploads, downloads, queries, and updates using Google Drive APIs.
+
+## Table of Contents
+
+- [Preview](#preview)
+- [Prerequisites](#prerequisites)
+- [Main Xircuits Components](#main-xircuits-components)
+- [Try the Examples](#try-the-examples)
+- [Installation](#installation)
+
+## Preview
+
+### GDriveSimpleDownload Example
+
+<img src="https://github.com/user-attachments/assets/621a7bb1-ad5f-436c-8acb-d544539e1bde" alt="GDriveSimpleDownload" />
+
+### GDriveSimpleUpdate Example  
+
+<img src="https://github.com/user-attachments/assets/339989fd-9e37-4d91-9eba-92e88553b810" alt="GDriveSimpleUpdate" />
+
+### GDriveSimpleUpload Example  
+
+<img src="https://github.com/user-attachments/assets/6b9f9816-d248-43c3-a219-213dc5def20b" alt="GDriveSimpleUpload" />
+
+## Prerequisites
+
+Before you begin, you will need the following:
+
+1. Python3.9+.
+2. Xircuits.
+
+## Main Xircuits Components
+
+### GDriveServiceAuth Component:
+Authenticates with Google Drive using a service account JSON file.
+
+<img src="https://github.com/user-attachments/assets/1894340b-dcba-489c-bc77-f2285371a736" alt="GDriveServiceAuth" width="200" height="100" />
+
+### GetFilesByQuery Component:
+Searches for files in Google Drive using a specified filename and MIME type.
+
+<img src="https://github.com/user-attachments/assets/5b2b7cba-d559-4e1b-80a2-df89e89a9e29" alt="GetFilesByQuery" width="200" height="150" />
+
+### UpdateFileInGDrive Component:
+Updates an existing file in Google Drive or uploads a new file if not found.
+
+<img src="https://github.com/user-attachments/assets/ad74a8c0-9531-40c6-a987-1222f0565f2e" alt="UpdateFileInGDrive" width="200" height="150" />
+
+### GDriveUserOAuth Component:
+Authenticates with Google Drive using OAuth for user accounts.
+
+
+### UploadFileToGDrive Component:
+Uploads a file to a specific folder on Google Drive with optional metadata.
+
+### DownloadFileFromGDrive Component:
+Downloads a file from Google Drive to a specified local path.
+
+### GDriveFileSystem Component:
+Creates a Google Drive file system using a service account for folder management.
+
+## Try the Examples
+
+We have provided an example workflow to help you get started with the Google Drive component library. Give it a try and see how you can create custom Google Drive components for your applications.
+
+### GDriveSimpleDownload Example  
+This example authenticates with Google Drive using a service account and downloads a specified file by its `file_id`, saving it locally.
+
+### GDriveSimpleUpdate Example  
+This example authenticates with Google Drive using a service account and updates the content of a file in a specified folder. If the file does not exist, it uploads it as a new file.
+
+### GDriveSimpleUpload Example  
+This example authenticates with Google Drive using a service account and uploads a file to a specified folder, allowing custom file naming during the upload process.
 
 ## Installation
 
-```
-pip install -r requirements.txt
-```
 
-To use this component library, simply copy the directory / clone or submodule the repository to your working Xircuits project directory.
+To use this component library, ensure that you have an existing [Xircuits setup](https://xircuits.io/docs/main/Installation). You can then install the GDrive library using the [component library interface](https://xircuits.io/docs/component-library/installation#installation-using-the-xircuits-library-interface), or through the CLI using:
+
+```
+xircuits install gdrive
+```
+You can also do it manually by cloning and installing it:
+```
+# base Xircuits directory
+git clone https://github.com/XpressAI/xai_gdrive xai_components/xai_gdrive
+pip install -r xai_components/xai_gdrive/requirements.txt 
+```
 
 ## Finding GDrive IDs
 - To get the folder id, navigate to your GDrive directory and copy the last part of the string: https://drive.google.com/drive/folders/`the-folder-id-string`
