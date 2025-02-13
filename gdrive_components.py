@@ -21,17 +21,17 @@ class GDriveServiceAuth(Component):
     ##### inPorts:
     - json_path: the path to the service account's secrets JSON file.
     """
-    GOOGLE_SERVICE_ACCOUNT_CREDENTIALS_path: InArg[str]
+    json_path: InArg[str]
     gauth: OutArg[any]
     gdrive: OutArg[any]
 
     def execute(self, ctx) -> None:
-        json_path = self.GOOGLE_SERVICE_ACCOUNT_CREDENTIALS_path.value
+        json_path = self.json_path.value
 
         if json_path and os.path.exists(json_path):
             print(f"Using provided service account JSON: {json_path}")
             with open(json_path, 'r') as f:
-                GOOGLE_SERVICE_ACCOUNT_CREDENTIALS_dict = json.load(f)
+                gdrive_creds= json.load(f)
         else:
             print("Provided path is empty or does not exist. Checking environment variable...")
             encoded_json = os.getenv("GOOGLE_SERVICE_ACCOUNT_CREDENTIALS")
@@ -39,16 +39,16 @@ class GDriveServiceAuth(Component):
             if not encoded_json:
                 raise ValueError("Neither a valid file path nor GOOGLE_SERVICE_ACCOUNT_CREDENTIALS environment variable was found.")
 
-            GOOGLE_SERVICE_ACCOUNT_CREDENTIALS_dict = json.loads(base64.b64decode(encoded_json).decode())
+            gdrive_creds = json.loads(base64.b64decode(encoded_json).decode())
 
-        auth_type = get_auth_type_from_json(GOOGLE_SERVICE_ACCOUNT_CREDENTIALS_dict)
+        auth_type = get_auth_type_from_json(gdrive_creds)
         if auth_type != 'Service Auth':
             raise ValueError(f'Expected a Service Auth JSON file, but got {auth_type}')
 
         settings = {
             "client_config_backend": "service",
             "service_config": {
-                "client_json_dict": GOOGLE_SERVICE_ACCOUNT_CREDENTIALS_dict,
+                "client_json_dict": gdrive_creds,
             }
         }
 
@@ -213,7 +213,7 @@ class GDriveFileSystem(Component):
         if json_path and os.path.exists(json_path):
             print(f"Using provided JSON key file: {json_path}")
             with open(json_path, 'r') as f:
-                GOOGLE_SERVICE_ACCOUNT_CREDENTIALS_dict = json.load(f)
+                gdrive_creds = json.load(f)
         else:
             print("Provided path is empty or does not exist. Checking environment variable...")
             encoded_json = os.getenv("GOOGLE_SERVICE_ACCOUNT_CREDENTIALS")
@@ -221,12 +221,12 @@ class GDriveFileSystem(Component):
             if not encoded_json:
                 raise ValueError("Neither a valid file path nor GOOGLE_SERVICE_ACCOUNT_CREDENTIALS environment variable was found.")
 
-            GOOGLE_SERVICE_ACCOUNT_CREDENTIALS_dict = json.loads(base64.b64decode(encoded_json).decode())
+            gdrive_creds = json.loads(base64.b64decode(encoded_json).decode())
 
         self.fs.value = GDriveFileSystem(
             self.folder_id.value,
             use_service_account=True,
-            client_json_dict=GOOGLE_SERVICE_ACCOUNT_CREDENTIALS_dict,
+            client_json_dict=gdrive_creds,
         )
 
         ctx.update({'fs': self.fs.value})
