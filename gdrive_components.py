@@ -21,12 +21,12 @@ class GDriveServiceAuth(Component):
     ##### inPorts:
     - json_path: the path to the service account's secrets JSON file.
     """
-    json_path: InArg[str]
+    service_json_path: InArg[str]
     gauth: OutArg[any]
     gdrive: OutArg[any]
 
     def execute(self, ctx) -> None:
-        json_path = self.json_path.value
+        json_path = self.service_json_path.value
 
         if json_path and os.path.exists(json_path):
             print(f"Using provided service account JSON: {json_path}")
@@ -48,7 +48,7 @@ class GDriveServiceAuth(Component):
         settings = {
             "client_config_backend": "service",
             "service_config": {
-                "client_json_dict": gdrive_creds,
+                "client_json_file_path": self.service_json_path.value,
             }
         }
 
