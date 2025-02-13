@@ -3,23 +3,16 @@ from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
 from pydrive2.fs import GDriveFileSystem
 import json
+import os
+import base64
 
-
-def get_auth_type_from_json(json_path):
-    # Read the content of the file
-    with open(json_path, 'r') as f:
-        json_content = f.read()
-
-    # Parse the JSON
-    json_obj = json.loads(json_content)
-
-    # Check for 'web' and 'type' to determine the type
-    if 'web' in json_obj:
-        return 'OAuth User'
-    elif 'type' in json_obj and json_obj['type'] == 'service_account':
-        return 'Service Auth'
-    else:
-        return 'Unknown type'
+def get_auth_type_from_json(json_obj):
+    if isinstance(json_obj, dict):
+        if 'web' in json_obj:
+            return 'OAuth User'
+        elif 'type' in json_obj and json_obj['type'] == 'service_account':
+            return 'Service Auth'
+    return 'Unknown type'
 
 @xai_component
 class GDriveServiceAuth(Component):
@@ -28,35 +21,48 @@ class GDriveServiceAuth(Component):
     ##### inPorts:
     - json_path: the path to the service account's secrets JSON file.
     """
-    service_json_path: InCompArg[str]
+    GOOGLE_SERVICE_ACCOUNT_CREDENTIALS_path: InArg[str]
     gauth: OutArg[any]
     gdrive: OutArg[any]
 
     def execute(self, ctx) -> None:
+        json_path = self.GOOGLE_SERVICE_ACCOUNT_CREDENTIALS_path.value
 
-        auth_type = get_auth_type_from_json(self.service_json_path.value)
+        if json_path and os.path.exists(json_path):
+            print(f"Using provided service account JSON: {json_path}")
+            with open(json_path, 'r') as f:
+                GOOGLE_SERVICE_ACCOUNT_CREDENTIALS_dict = json.load(f)
+        else:
+            print("Provided path is empty or does not exist. Checking environment variable...")
+            encoded_json = os.getenv("GOOGLE_SERVICE_ACCOUNT_CREDENTIALS")
 
+            if not encoded_json:
+                raise ValueError("Neither a valid file path nor GOOGLE_SERVICE_ACCOUNT_CREDENTIALS environment variable was found.")
+
+            GOOGLE_SERVICE_ACCOUNT_CREDENTIALS_dict = json.loads(base64.b64decode(encoded_json).decode())
+
+        auth_type = get_auth_type_from_json(GOOGLE_SERVICE_ACCOUNT_CREDENTIALS_dict)
         if auth_type != 'Service Auth':
             raise ValueError(f'Expected a Service Auth JSON file, but got {auth_type}')
 
         settings = {
             "client_config_backend": "service",
             "service_config": {
-                "client_json_file_path": self.service_json_path.value,
+                "client_json_dict": GOOGLE_SERVICE_ACCOUNT_CREDENTIALS_dict,
             }
         }
-        # Create instance of GoogleAuth
+
         gauth = GoogleAuth(settings=settings)
         gauth.ServiceAuth()
 
-        # Save gauth in the context for other components to use
         ctx.update({'gauth': gauth})
         self.gauth.value = gauth
 
         self.gdrive.value = GoogleDrive(gauth)
         ctx.update({'gdrive': self.gdrive.value})
 
-
+        print("Google Drive authentication completed successfully.")
+        
 @xai_component
 class GDriveUserOAuth(Component):
     """A component that authenticates with Google Drive using a service account.
@@ -71,7 +77,7 @@ class GDriveUserOAuth(Component):
         gauth = GoogleAuth()
         
         if self.oauth_json_path.value:
-            auth_type = get_auth_type_from_json(self.service_json_path.value)
+            auth_type = get_auth_type_from_json(self.oauth_json_path.value)
 
             if auth_type != 'OAuth User':
                 raise ValueError(f'Expected a OAuth User JSON file, but got {auth_type}')
@@ -190,8 +196,10 @@ class DownloadFileFromGDrive(Component):
 @xai_component
 class GDriveFileSystem(Component):
     """
+    Component to create a Google Drive File System instance.
     """
-    json_path: InCompArg[str]
+
+    json_path: InArg[str]
     folder_id: InArg[str]
     fs: OutArg[any]
 
@@ -199,14 +207,30 @@ class GDriveFileSystem(Component):
         super().__init__()
         self.folder_id.value = "root"
 
-
     def execute(self, ctx) -> None:
+        json_path = self.json_path.value
+
+        if json_path and os.path.exists(json_path):
+            print(f"Using provided JSON key file: {json_path}")
+            with open(json_path, 'r') as f:
+                GOOGLE_SERVICE_ACCOUNT_CREDENTIALS_dict = json.load(f)
+        else:
+            print("Provided path is empty or does not exist. Checking environment variable...")
+            encoded_json = os.getenv("GOOGLE_SERVICE_ACCOUNT_CREDENTIALS")
+
+            if not encoded_json:
+                raise ValueError("Neither a valid file path nor GOOGLE_SERVICE_ACCOUNT_CREDENTIALS environment variable was found.")
+
+            GOOGLE_SERVICE_ACCOUNT_CREDENTIALS_dict = json.loads(base64.b64decode(encoded_json).decode())
 
         self.fs.value = GDriveFileSystem(
             self.folder_id.value,
             use_service_account=True,
-            client_json_file_path=self.json_path.value,
+            client_json_dict=GOOGLE_SERVICE_ACCOUNT_CREDENTIALS_dict,
         )
+
+        ctx.update({'fs': self.fs.value})
+        print("Google Drive File System initialized successfully.")
 
 @xai_component
 class UpdateFileInGDrive(Component):
