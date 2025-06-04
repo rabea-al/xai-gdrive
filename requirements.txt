@@ -1,6 +1,6 @@
 appdirs
-fsspec==2024.10.0
+fsspec
 funcy
 pydrive2==1.20.0
-tqdm==4.67.1
+tqdm
 pydrive2[fsspec]==1.20.0
