@@ -48,7 +48,7 @@ class GDriveServiceAuth(Component):
         settings = {
             "client_config_backend": "service",
             "service_config": {
-                "client_json_file_path": self.service_json_path.value,
+                "client_json_dict": gdrive_creds,
             }
         }
 
